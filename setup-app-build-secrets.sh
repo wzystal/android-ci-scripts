@@ -149,15 +149,24 @@ echo ""
 set_count=0
 skip_count=0
 
-while IFS= read -r line || [[ -n "$line" ]]; do
-  line="$(trim "$line")"
-  [[ -z "$line" || "$line" == \#* ]] && continue
-
+parse_manifest_line() {
+  local line="$1"
+  secret_name=""
+  local_key=""
+  requirement=""
+  label=""
   IFS='|' read -r secret_name local_key requirement label <<< "$line"
   secret_name="$(trim "${secret_name:-}")"
   local_key="$(trim "${local_key:-}")"
   requirement="$(trim "${requirement:-}")"
-  label="$(trim "${label:-$secret_name}")"
+  label="$(trim "${label:-${secret_name:-secret}}")"
+}
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+  line="$(trim "$line")"
+  [[ -z "$line" || "$line" == \#* ]] && continue
+
+  parse_manifest_line "$line"
 
   [[ -z "$secret_name" ]] && continue
 
@@ -169,19 +178,19 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
 
   if [[ -z "$value" ]]; then
-    if [[ "$requirement" == "required" ]]; then
-      echo "[$secret_name] $label（required）"
+    if [[ "${requirement:-}" == "required" ]]; then
+      echo "[$secret_name] ${label:-$secret_name}（required）"
       read_masked "  > " value
       value="$(trim "$value")"
     else
-      echo "[$secret_name] $label（optional，回车跳过）"
+      echo "[$secret_name] ${label:-$secret_name}（optional，回车跳过）"
       read_masked "  > " value
       value="$(trim "$value")"
     fi
   fi
 
   if [[ -z "$value" ]]; then
-    if [[ "$requirement" == "required" ]]; then
+    if [[ "${requirement:-}" == "required" ]]; then
       echo "  跳过 required 密钥 $secret_name，整条 manifest 写入中止。" >&2
       exit 1
     fi

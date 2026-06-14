@@ -26,10 +26,14 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   line="$(trim "$line")"
   [[ -z "$line" || "$line" == \#* ]] && continue
 
+  secret_name=""
+  local_key=""
+  requirement=""
+  label=""
   IFS='|' read -r secret_name local_key requirement label <<< "$line"
   secret_name="$(trim "${secret_name:-}")"
   requirement="$(trim "${requirement:-}")"
-  label="$(trim "${label:-$secret_name}")"
+  label="$(trim "${label:-${secret_name:-secret}}")"
 
   [[ -z "$secret_name" ]] && continue
 
