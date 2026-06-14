@@ -17,6 +17,12 @@ trim() {
   printf '%s' "$s"
 }
 
+# 去除控制字符（含 ESC 0x1b），避免写入 GitHub Secret 后导致 Authorization 头非法
+sanitize_secret() {
+  local raw="$1"
+  printf '%s' "$raw" | LC_ALL=C tr -d '\000-\037\177'
+}
+
 read_masked() {
   local prompt="$1"
   local __result_var="$2"
@@ -182,6 +188,14 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     echo "  已跳过 optional: $secret_name"
     skip_count=$((skip_count + 1))
     continue
+  fi
+
+  value="$(sanitize_secret "$value")"
+  value="$(trim "$value")"
+
+  if [[ -z "$value" ]]; then
+    echo "  密钥 $secret_name 清洗后为空，已跳过。" >&2
+    exit 1
   fi
 
   gh secret set "$secret_name" --repo "$REPO" --body "$value"
