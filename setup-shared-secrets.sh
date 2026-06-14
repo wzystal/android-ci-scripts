@@ -16,6 +16,37 @@ trim() {
   printf '%s' "$s"
 }
 
+# 读取敏感输入：不回显明文，每输入一个字符显示一个 *
+read_masked() {
+  local prompt="$1"
+  local __result_var="$2"
+  local char
+  local value=""
+
+  printf '%s' "$prompt"
+  while true; do
+    IFS= read -r -s -n 1 char 2>/dev/null || true
+    if [[ -z "$char" || "$char" == $'\n' || "$char" == $'\r' ]]; then
+      break
+    fi
+    if [[ "$char" == $'\003' ]]; then
+      printf '\n'
+      exit 130
+    fi
+    if [[ "$char" == $'\177' || "$char" == $'\b' ]]; then
+      if [[ -n "$value" ]]; then
+        value="${value%?}"
+        printf '\b \b'
+      fi
+      continue
+    fi
+    value+="$char"
+    printf '*'
+  done
+  printf '\n'
+  printf -v "$__result_var" '%s' "$value"
+}
+
 usage() {
   cat <<EOF
 用法:
@@ -66,7 +97,7 @@ echo "========================================"
 echo "  配置蒲公英 & 钉钉 GitHub Secrets"
 echo "========================================"
 echo ""
-echo "提示: 输入时不会回显密码类字段；留空可跳过该项。"
+echo "提示: 敏感字段输入时以 * 显示长度；留空可跳过该项。"
 echo ""
 
 # 1. PGYER_API_KEY
@@ -77,9 +108,7 @@ while true; do
   if [[ -n "${PGYER_API_KEY:-}" ]]; then
     echo "      （检测到环境变量 PGYER_API_KEY，直接回车沿用）"
   fi
-  printf "      > "
-  read -rs input_key || true
-  echo ""
+  read_masked "      > " input_key
   if [[ -z "$input_key" && -n "${PGYER_API_KEY:-}" ]]; then
     pgyer_key="$(trim "$PGYER_API_KEY")"
     break
@@ -102,9 +131,7 @@ while true; do
   if [[ -n "${DINGTALK_WEBHOOK:-}" ]]; then
     echo "      （检测到环境变量 DINGTALK_WEBHOOK，直接回车沿用）"
   fi
-  printf "      > "
-  read -rs input_hook || true
-  echo ""
+  read_masked "      > " input_hook
   if [[ -z "$input_hook" && -n "${DINGTALK_WEBHOOK:-}" ]]; then
     dingtalk_webhook="$(trim "$DINGTALK_WEBHOOK")"
     break
