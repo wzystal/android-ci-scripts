@@ -21,7 +21,7 @@ read_masked() {
   local prompt="$1"
   local __result_var="$2"
   local char
-  local value=""
+  local buf=""
 
   printf '%s' "$prompt"
   while true; do
@@ -34,17 +34,17 @@ read_masked() {
       exit 130
     fi
     if [[ "$char" == $'\177' || "$char" == $'\b' ]]; then
-      if [[ -n "$value" ]]; then
-        value="${value%?}"
+      if [[ -n "$buf" ]]; then
+        buf="${buf%?}"
         printf '\b \b'
       fi
       continue
     fi
-    value+="$char"
+    buf+="$char"
     printf '*'
   done
   printf '\n'
-  printf -v "$__result_var" '%s' "$value"
+  printf -v "$__result_var" '%s' "$buf"
 }
 
 usage() {

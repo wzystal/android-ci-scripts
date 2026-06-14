@@ -27,7 +27,7 @@ read_masked() {
   local prompt="$1"
   local __result_var="$2"
   local char
-  local value=""
+  local buf=""
 
   printf '%s' "$prompt"
   while true; do
@@ -40,17 +40,17 @@ read_masked() {
       exit 130
     fi
     if [[ "$char" == $'\177' || "$char" == $'\b' ]]; then
-      if [[ -n "$value" ]]; then
-        value="${value%?}"
+      if [[ -n "$buf" ]]; then
+        buf="${buf%?}"
         printf '\b \b'
       fi
       continue
     fi
-    value+="$char"
+    buf+="$char"
     printf '*'
   done
   printf '\n'
-  printf -v "$__result_var" '%s' "$value"
+  printf -v "$__result_var" '%s' "$buf"
 }
 
 usage() {
@@ -148,25 +148,26 @@ echo ""
 
 set_count=0
 skip_count=0
-
-parse_manifest_line() {
-  local line="$1"
-  secret_name=""
-  local_key=""
-  requirement=""
-  label=""
-  IFS='|' read -r secret_name local_key requirement label <<< "$line"
-  secret_name="$(trim "${secret_name:-}")"
-  local_key="$(trim "${local_key:-}")"
-  requirement="$(trim "${requirement:-}")"
-  label="$(trim "${label:-${secret_name:-secret}}")"
-}
+secret_name=""
+local_key=""
+requirement=""
+label=""
+value=""
 
 while IFS= read -r line || [[ -n "$line" ]]; do
   line="$(trim "$line")"
   [[ -z "$line" || "$line" == \#* ]] && continue
 
-  parse_manifest_line "$line"
+  secret_name=""
+  local_key=""
+  requirement=""
+  label=""
+  value=""
+  IFS='|' read -r secret_name local_key requirement label <<< "$line"
+  secret_name="$(trim "${secret_name:-}")"
+  local_key="$(trim "${local_key:-}")"
+  requirement="$(trim "${requirement:-}")"
+  label="$(trim "${label:-${secret_name:-secret}}")"
 
   [[ -z "$secret_name" ]] && continue
 
@@ -191,10 +192,10 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
   if [[ -z "$value" ]]; then
     if [[ "${requirement:-}" == "required" ]]; then
-      echo "  跳过 required 密钥 $secret_name，整条 manifest 写入中止。" >&2
+      echo "  跳过 required 密钥 ${secret_name:-?}，整条 manifest 写入中止。" >&2
       exit 1
     fi
-    echo "  已跳过 optional: $secret_name"
+    echo "  已跳过 optional: ${secret_name:-?}"
     skip_count=$((skip_count + 1))
     continue
   fi
@@ -203,7 +204,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   value="$(trim "$value")"
 
   if [[ -z "$value" ]]; then
-    echo "  密钥 $secret_name 清洗后为空，已跳过。" >&2
+    echo "  密钥 ${secret_name:-?} 清洗后为空，已跳过。" >&2
     exit 1
   fi
 
