@@ -7,6 +7,7 @@
 set -euo pipefail
 
 DEFAULT_REPOS="wzystal/pdf-studio,wzystal/WeiqiGame,wzystal/AiChatHub,wzystal/BridgeGame"
+SECRETS_ENV="${SECRETS_ENV:-$HOME/.config/android-release/secrets.env}"
 
 trim() {
   local s="$1"
@@ -18,12 +19,16 @@ trim() {
 usage() {
   cat <<EOF
 用法:
-  setup-shared-secrets.sh
+  setup-shared-secrets.sh [--repos owner/repo,owner/repo2]
 
 交互式依次输入:
   1. PGYER_API_KEY（蒲公英后台 API 信息页）
   2. DINGTALK_WEBHOOK（钉钉机器人 Webhook 完整 URL）
-  3. 目标仓库列表（owner/repo，逗号分隔；直接回车使用默认列表）
+  3. 目标仓库列表（owner/repo，逗号分隔；直接回车使用 --repos 或默认列表）
+
+可选:
+  --repos   指定目标仓库，逗号分隔
+  环境变量文件 ~/.config/android-release/secrets.env（若存在则预填，格式 PGYER_API_KEY= / DINGTALK_WEBHOOK=）
 
 默认仓库:
   $DEFAULT_REPOS
@@ -36,6 +41,20 @@ EOF
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
+fi
+
+REPO_INPUT=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repos) REPO_INPUT="$2"; shift 2 ;;
+    *) echo "未知参数: $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+if [[ -f "$SECRETS_ENV" ]]; then
+  # shellcheck disable=SC1090
+  source "$SECRETS_ENV"
+  echo "已加载: $SECRETS_ENV"
 fi
 
 if ! gh auth status >/dev/null 2>&1; then
@@ -118,7 +137,7 @@ printf "      > "
 read -r repo_input || true
 repo_input="$(trim "$repo_input")"
 if [[ -z "$repo_input" ]]; then
-  repo_input="$DEFAULT_REPOS"
+  repo_input="${REPO_INPUT:-$DEFAULT_REPOS}"
 fi
 
 IFS=',' read -r -a repo_candidates <<< "$repo_input"
