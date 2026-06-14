@@ -18,7 +18,9 @@ usage() {
   - CI 运行时从 GitHub 仓库 ${SHARED_SCRIPTS_REPO} 拉取共享脚本
   - 本地签名: ~/tools/scripts/generate-release-keystore.sh <项目>
   - 本地 Secrets: ~/tools/scripts/setup-github-secrets.sh --project-dir <项目>
+  - 构建密钥:     ~/tools/scripts/setup-app-build-secrets.sh --project-dir <项目>
   - 共享 Secrets: ~/tools/scripts/setup-shared-secrets.sh
+  - 说明文档:     ~/tools/scripts/app-build-secrets.README
 EOF
 }
 
@@ -51,6 +53,8 @@ if [[ ! -f "$TARGET/signing/README.md" ]]; then
 ~/tools/scripts/generate-release-keystore.sh "$TARGET"
 ~/tools/scripts/setup-github-secrets.sh --project-dir "$TARGET"
 ~/tools/scripts/setup-shared-secrets.sh
+# 若存在 signing/ci-build-secrets.manifest:
+# ~/tools/scripts/setup-app-build-secrets.sh --project-dir "$TARGET"
 \`\`\`
 EOF
 fi

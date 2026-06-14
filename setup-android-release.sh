@@ -58,5 +58,14 @@ fi
 
 echo ""
 echo "项目 $(basename "$PROJECT_DIR") 的 Release 签名已配置。"
+
+MANIFEST="$PROJECT_DIR/signing/ci-build-secrets.manifest"
+if [[ -f "$MANIFEST" ]]; then
+  echo ""
+  echo "检测到构建密钥 manifest，可继续执行:"
+  echo "  ~/tools/scripts/setup-app-build-secrets.sh --project-dir \"$PROJECT_DIR\""
+fi
+
+echo ""
 echo "若尚未配置蒲公英/钉钉，请执行:"
 echo "  ~/tools/scripts/setup-shared-secrets.sh --repos <owner/repo,...>"
